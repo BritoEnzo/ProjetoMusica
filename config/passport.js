@@ -1,55 +1,26 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const FacebookStrategy = require('passport-facebook').Strategy;
 const User = require('../models/User');
 
-// Google Strategy
+// Configurações do passport AQUI
 passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    clientID: process.env.GOOGLE_CLIENT_ID || 'mock',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'mock', 
     callbackURL: "/api/auth/google/callback"
 }, async (accessToken, refreshToken, profile, done) => {
-    try {
-        let user = await User.findOne({ googleId: profile.id });
-        
-        if (user) {
-            return done(null, user);
-        }
-        
-        user = await User.findOne({ email: profile.emails[0].value });
-        
-        if (user) {
-            user.googleId = profile.id;
-            await user.save();
-            return done(null, user);
-        }
-        
-        // Criar novo usuário
-        user = await User.create({
-            googleId: profile.id,
-            name: profile.displayName,
-            email: profile.emails[0].value,
-            avatar: profile.photos[0].value,
-            provider: 'google'
-        });
-        
-        return done(null, user);
-    } catch (error) {
-        return done(error, null);
-    }
+    // Sua lógica aqui
+    const user = await User.findOne({ email: profile.emails[0].value });
+    return done(null, user || { name: 'Usuário Google', email: profile.emails[0].value });
 }));
 
-// Serializar usuário
 passport.serializeUser((user, done) => {
-    done(null, user.id);
+    done(null, user.id || user._id);
 });
 
-// Desserializar usuário
 passport.deserializeUser(async (id, done) => {
-    try {
-        const user = await User.findById(id);
-        done(null, user);
-    } catch (error) {
-        done(error, null);
-    }
+    const user = await User.findById(id);
+    done(null, user);
 });
+
+// 👇 ISSO É O MAIS IMPORTANTE!
+module.exports = passport;
