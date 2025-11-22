@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Mídias - Sistema de Mídias</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">🎬 Sistema de Mídias</h1>
+            <div class="nav-links">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/medias" class="active">Mídias</a>
+                <a href="/medias/new">Nova Mídia</a>
+                <button id="logout-btn" class="btn-logout">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="media-list-container">
+            <div class="page-header">
+                <h1>📋 Todas as Mídias</h1>
+                <p>Gerencie sua coleção completa</p>
+            </div>
+
+            <div class="actions-bar">
+                <a href="/medias/new" class="btn btn-primary">
+                    ➕ Nova Mídia
+                </a>
+                <div class="filters">
+                    <select id="filter-type" class="filter-select">
+                        <option value="">Todos os Tipos</option>
+                        <option value="Lucas">Lucas</option>
+                        <option value="DVD">DVD</option>
+                        <option value="CD4">CD4</option>
+                        <option value="Audio">Audio</option>
+                    </select>
+                    <button id="clear-filters" class="btn btn-outline">
+                        🔄 Limpar Filtros
+                    </button>
+                </div>
+            </div>
+
+            <div class="media-table-container">
+                <table class="media-table">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Título</th>
+                            <th>Data</th>
+                            <th>Adobe</th>
+                            <th>Usuário</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="media-table-body">
+                        <tr>
+                            <td colspan="6" class="loading">Carregando mídias...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination">
+                <button id="prev-page" class="btn btn-outline" disabled>← Anterior</button>
+                <span id="page-info">Página 1</span>
+                <button id="next-page" class="btn btn-outline" disabled>Próxima →</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script>
+        class MediaList {
+            constructor() {
+                this.medias = [];
+                this.filteredMedias = [];
+                this.currentPage = 1;
+                this.itemsPerPage = 10;
+                this.currentFilter = '';
+                
+                this.checkAuth();
+                this.loadMedias();
+                this.setupEventListeners();
+            }
+
+            checkAuth() {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+            }
+
+            async loadMedias() {
+                try {
+                    this.medias = await MediaAPI.getMedias();
+                    this.applyFilters();
+                    this.renderTable();
+                    
+                } catch (error) {
+                    console.error('Erro ao carregar mídias:', error);
+                    document.getElementById('media-table-body').innerHTML = `
+                        <tr>
+                            <td colspan="6" class="error">Erro ao carregar mídias</td>
+                        </tr>
+                    `;
+                }
+            }
+
+            applyFilters() {
+                const filterType = document.getElementById('filter-type').value;
+                
+                this.filteredMedias = this.medias.filter(media => {
+                    if (filterType && media.tipo !== filterType) {
+                        return false;
+                    }
+                    return true;
+                });
+                
+                this.currentPage = 1;
+                this.updatePagination();
+            }
+
+            renderTable() {
+                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+                const endIndex = startIndex + this.itemsPerPage;
+                const pageMedias = this.filteredMedias.slice(startIndex, endIndex);
+                
+                const tbody = document.getElementById('media-table-body');
+                
+                if (pageMedias.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="empty">Nenhuma mídia encontrada</td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = pageMedias.map(media => `
+                    <tr>
+                        <td>
+                            <span class="media-type-badge ${media.tipo.toLowerCase()}">
+                                ${this.getTypeIcon(media.tipo)} ${media.tipo}
+                            </span>
+                        </td>
+                        <td>${media.titulo}</td>
+                        <td>${new Date(media.data).toLocaleDateString('pt-BR')}</td>
+                        <td>${media.adobe || '-'}</td>
+                        <td>${media.usuario?.name || 'N/A'}</td>
+                        <td>
+                            <button onclick="mediaList.editMedia('${media._id}')" class="btn btn-small">
+                                ✏️ Editar
+                            </button>
+                            <button onclick="mediaList.deleteMedia('${media._id}')" class="btn btn-small btn-danger">
+                                🗑️ Excluir
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            getTypeIcon(tipo) {
+                const icons = {
+                    'Lucas': '🎬',
+                    'DVD': '🎥',
+                    'CD4': '💿',
+                    'Audio': '🎵'
+                };
+                return icons[tipo] || '📀';
+            }
+
+            updatePagination() {
+                const totalPages = Math.ceil(this.filteredMedias.length / this.itemsPerPage);
+                const pageInfo = document.getElementById('page-info');
+                const prevBtn = document.getElementById('prev-page');
+                const nextBtn = document.getElementById('next-page');
+                
+                pageInfo.textContent = `Página ${this.currentPage} de ${totalPages}`;
+                prevBtn.disabled = this.currentPage === 1;
+                nextBtn.disabled = this.currentPage === totalPages || totalPages === 0;
+            }
+
+            editMedia(id) {
+                alert(`Editar mídia: ${id}\n\nEsta funcionalidade será implementada em breve!`);
+                // window.location.href = `/medias/edit/${id}`;
+            }
+
+            async deleteMedia(id) {
+                if (!confirm('Tem certeza que deseja excluir esta mídia?')) {
+                    return;
+                }
+                
+                try {
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        alert('Você precisa estar logado para excluir mídias');
+                        return;
+                    }
+                    
+                    await MediaAPI.deleteMedia(id);
+                    alert('Mídia excluída com sucesso!');
+                    this.loadMedias(); // Recarregar a lista
+                    
+                } catch (error) {
+                    alert('Erro ao excluir mídia: ' + error.message);
+                }
+            }
+
+            setupEventListeners() {
+                // Filtros
+                document.getElementById('filter-type').addEventListener('change', () => {
+                    this.applyFilters();
+                    this.renderTable();
+                });
+                
+                document.getElementById('clear-filters').addEventListener('click', () => {
+                    document.getElementById('filter-type').value = '';
+                    this.applyFilters();
+                    this.renderTable();
+                });
+                
+                // Paginação
+                document.getElementById('prev-page').addEventListener('click', () => {
+                    if (this.currentPage > 1) {
+                        this.currentPage--;
+                        this.renderTable();
+                        this.updatePagination();
+                    }
+                });
+                
+                document.getElementById('next-page').addEventListener('click', () => {
+                    const totalPages = Math.ceil(this.filteredMedias.length / this.itemsPerPage);
+                    if (this.currentPage < totalPages) {
+                        this.currentPage++;
+                        this.renderTable();
+                        this.updatePagination();
+                    }
+                });
+                
+                // Logout
+                document.getElementById('logout-btn').addEventListener('click', () => {
+                    localStorage.removeItem('token');
+                    window.location.href = '/';
+                });
+            }
+        }
+
+        // Inicializar lista de mídias
+        let mediaList;
+        document.addEventListener('DOMContentLoaded', () => {
+            mediaList = new MediaList();
+        });
+    </script>
+</body>
+</html>

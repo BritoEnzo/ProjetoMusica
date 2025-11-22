@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Mídias</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">🎬 Sistema de Mídias</h1>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/login">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="login-container">
+            <div class="login-card">
+                <h2>🔐 Entrar no Sistema</h2>
+                <p>Escolha como deseja fazer login:</p>
+                
+                <div class="login-options">
+                    <a href="/api/auth/google" class="btn btn-google">
+                        <span class="btn-icon">📧</span>
+                        Entrar com Google
+                    </a>
+                    
+                    <a href="/api/auth/facebook" class="btn btn-facebook">
+                        <span class="btn-icon">👥</span>
+                        Entrar com Facebook
+                    </a>
+                </div>
+
+                <div class="login-info">
+                    <h3>💡 Para Testar:</h3>
+                    <p>Clique em qualquer botão acima. O sistema criará um usuário de exemplo para demonstração.</p>
+                    
+                    <div class="demo-accounts">
+                        <div class="demo-account">
+                            <strong>Google:</strong> usuário_google@exemplo.com
+                        </div>
+                        <div class="demo-account">
+                            <strong>Facebook:</strong> usuário_facebook@exemplo.com
+                        </div>
+                    </div>
+                </div>
+
+                <div class="login-footer">
+                    <p>Não tem conta? O login social criará automaticamente.</p>
+                    <a href="/" class="btn-link">← Voltar para Home</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Verificar se há token na URL (após login redirecionado)
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        
+        if (token) {
+            // Salvar token no localStorage
+            localStorage.setItem('token', token);
+            // Redirecionar para dashboard
+            window.location.href = '/dashboard';
+        }
+    </script>
+</body>
+</html>

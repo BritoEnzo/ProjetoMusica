@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Mídias</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">🎬 Sistema de Mídias</h1>
+            <div class="nav-links">
+                <span id="user-greeting">Carregando...</span>
+                <a href="/dashboard" class="active">Dashboard</a>
+                <a href="/medias">Mídias</a>
+                <a href="/medias/new">Nova Mídia</a>
+                <button id="logout-btn" class="btn-logout">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <h1>📊 Dashboard</h1>
+                <p>Visão geral da sua coleção de mídias</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📀</div>
+                    <div class="stat-info">
+                        <h3>Total de Mídias</h3>
+                        <p id="total-medias" class="stat-number">0</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">🎬</div>
+                    <div class="stat-info">
+                        <h3>Lucas</h3>
+                        <p id="lucas-count" class="stat-number">0</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">🎥</div>
+                    <div class="stat-info">
+                        <h3>DVDs</h3>
+                        <p id="dvds-count" class="stat-number">0</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">💿</div>
+                    <div class="stat-info">
+                        <h3>CD4</h3>
+                        <p id="cd4-count" class="stat-number">0</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">🎵</div>
+                    <div class="stat-info">
+                        <h3>Audio</h3>
+                        <p id="audio-count" class="stat-number">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-actions">
+                <h2>Ações Rápidas</h2>
+                <div class="action-buttons">
+                    <a href="/medias/new" class="btn btn-primary">
+                        ➕ Adicionar Nova Mídia
+                    </a>
+                    <a href="/medias" class="btn btn-secondary">
+                        📋 Ver Todas as Mídias
+                    </a>
+                    <button id="refresh-btn" class="btn btn-outline">
+                        🔄 Atualizar Dados
+                    </button>
+                </div>
+            </div>
+
+            <div class="recent-medias">
+                <h2>Últimas Mídias Adicionadas</h2>
+                <div id="recent-medias-list" class="medias-list">
+                    <div class="loading">Carregando mídias...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script>
+        class Dashboard {
+            constructor() {
+                this.checkAuth();
+                this.loadStats();
+                this.loadRecentMedias();
+                this.setupEventListeners();
+            }
+
+            checkAuth() {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+            }
+
+            async loadStats() {
+                try {
+                    const medias = await MediaAPI.getMedias();
+                    
+                    // Atualizar contadores
+                    document.getElementById('total-medias').textContent = medias.length;
+                    document.getElementById('lucas-count').textContent = medias.filter(m => m.tipo === 'Lucas').length;
+                    document.getElementById('dvds-count').textContent = medias.filter(m => m.tipo === 'DVD').length;
+                    document.getElementById('cd4-count').textContent = medias.filter(m => m.tipo === 'CD4').length;
+                    document.getElementById('audio-count').textContent = medias.filter(m => m.tipo === 'Audio').length;
+                    
+                } catch (error) {
+                    console.error('Erro ao carregar estatísticas:', error);
+                }
+            }
+
+            async loadRecentMedias() {
+                try {
+                    const medias = await MediaAPI.getMedias();
+                    const recentMedias = medias.slice(-5).reverse(); // Últimas 5
+                    
+                    const container = document.getElementById('recent-medias-list');
+                    
+                    if (recentMedias.length === 0) {
+                        container.innerHTML = '<div class="empty-state">Nenhuma mídia encontrada</div>';
+                        return;
+                    }
+                    
+                    container.innerHTML = recentMedias.map(media => `
+                        <div class="media-item">
+                            <div class="media-type">${this.getTypeIcon(media.tipo)}</div>
+                            <div class="media-info">
+                                <h4>${media.titulo}</h4>
+                                <p>${new Date(media.data).toLocaleDateString('pt-BR')}</p>
+                            </div>
+                            <div class="media-adobe">
+                                ${media.adobe ? `Adobe: ${media.adobe}` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                } catch (error) {
+                    console.error('Erro ao carregar mídias recentes:', error);
+                }
+            }
+
+            getTypeIcon(tipo) {
+                const icons = {
+                    'Lucas': '🎬',
+                    'DVD': '🎥',
+                    'CD4': '💿',
+                    'Audio': '🎵'
+                };
+                return icons[tipo] || '📀';
+            }
+
+            setupEventListeners() {
+                // Botão de logout
+                document.getElementById('logout-btn').addEventListener('click', () => {
+                    localStorage.removeItem('token');
+                    window.location.href = '/';
+                });
+
+                // Botão de atualizar
+                document.getElementById('refresh-btn').addEventListener('click', () => {
+                    this.loadStats();
+                    this.loadRecentMedias();
+                });
+            }
+        }
+
+        // Inicializar dashboard quando a página carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            new Dashboard();
+        });
+    </script>
+</body>
+</html>
