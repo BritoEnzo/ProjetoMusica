@@ -30,10 +30,9 @@ const protect = async (req, res, next) => {
 // Middleware para verificar se é GET (público) ou outras methods (protegidas)
 const optionalAuth = async (req, res, next) => {
     if (req.method === 'GET') {
-        return next(); // GET é público
+        return next(); 
     }
     
-    // Para POST, PUT, DELETE, verifica autenticação
     return protect(req, res, next);
 };
 

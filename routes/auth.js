@@ -4,7 +4,7 @@ const generateToken = require('../utils/generateToken');
 
 const router = express.Router();
 
-// ✅ CADASTRAR NOVO USUÁRIO
+// CADASTRAR NOVO USUÁRIO
 router.post('/register', async (req, res) => {
     try {
         const { name, email, password, confirmPassword } = req.body;
@@ -63,7 +63,7 @@ router.post('/register', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ Erro no cadastro:', error);
+        console.error(' Erro no cadastro:', error);
         
         if (error.name === 'ValidationError') {
             const errors = Object.values(error.errors).map(err => err.message);
@@ -81,7 +81,6 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// ✅ LOGIN REAL com email/senha
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -121,8 +120,7 @@ router.post('/login', async (req, res) => {
                 message: 'Usuário desativado'
             });
         }
-        
-        // Gerar token
+       
         const token = generateToken(user._id);
         
         res.json({
@@ -137,7 +135,7 @@ router.post('/login', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ Erro no login:', error);
+        console.error(' Erro no login:', error);
         res.status(500).json({
             success: false,
             message: 'Erro interno no servidor'
@@ -145,7 +143,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// ✅ LOGIN MOCK (apenas para desenvolvimento)
 router.post('/mock-login', async (req, res) => {
     try {
         const { email, name } = req.body;
@@ -190,7 +187,6 @@ router.post('/mock-login', async (req, res) => {
     }
 });
 
-// ✅ VERIFICAR TOKEN
 router.get('/verify', async (req, res) => {
     try {
         const token = req.headers.authorization?.replace('Bearer ', '');
@@ -202,8 +198,7 @@ router.get('/verify', async (req, res) => {
             });
         }
         
-        // Em produção, aqui verificaria o JWT
-        // Por enquanto, retorna válido para desenvolvimento
+
         res.json({
             valid: true,
             message: 'Token válido'
@@ -217,7 +212,6 @@ router.get('/verify', async (req, res) => {
     }
 });
 
-// ✅ LOGOUT
 router.post('/logout', (req, res) => {
     res.json({ 
         success: true, 

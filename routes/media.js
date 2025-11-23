@@ -20,7 +20,6 @@ router.post('/', (req, res) => {
     res.status(201).json(media);
 });
 
-// DELETE /api/medias/:id
 router.delete('/:id', (req, res) => {
     const index = medias.findIndex(m => m._id === req.params.id);
     if (index !== -1) {
@@ -31,7 +30,6 @@ router.delete('/:id', (req, res) => {
     }
 });
 
-// GET /api/medias/:id - Buscar uma mídia específica
 router.get('/:id', async (req, res) => {
     try {
         const media = await Media.findById(req.params.id)
@@ -50,7 +48,7 @@ router.get('/:id', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ Erro ao buscar mídia:', error);
+        console.error(' Erro ao buscar mídia:', error);
         res.status(500).json({
             success: false,
             message: 'Erro ao carregar mídia'
