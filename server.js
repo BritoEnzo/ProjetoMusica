@@ -9,17 +9,59 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const mediaRoutes = require('./routes/media');
 
-// Importar configurações
-const connectDB = require('./config/database');
+// Importar configurações - REMOVA a importação do connectDB se não existe
+// const connectDB = require('./config/database'); // COMENTE OU REMOVA ESTA LINHA
 const passport = require('./config/passport');
 
 const app = express();
 
+// ✅ CONEXÃO MONGODB CORRIGIDA (sem duplicação)
+const connectDB = async () => {
+    try {
+        console.log('🔗 Conectando ao MongoDB...');
+        const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/projeto_medias', {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+        
+        console.log(`✅ MongoDB Conectado: ${conn.connection.host}`);
+        console.log(`📊 Database: ${conn.connection.name}`);
+        
+    } catch (error) {
+        console.error('❌ Erro ao conectar com MongoDB:', error.message);
+        console.log('🔄 Tentando reconectar em 5 segundos...');
+        setTimeout(connectDB, 5000);
+    }
+};
+
 // Conectar ao MongoDB
 connectDB();
 
-// Middlewares
-app.use(cors());
+// ✅ CORS CORRIGIDO para produção
+app.use(cors({
+    origin: function (origin, callback) {
+        // Aceita todos os origins em desenvolvimento, ou específicos em produção
+        const allowedOrigins = [
+            'https://projetomusica.onrender.com',
+            'http://localhost:3000',
+            'http://localhost:5000'
+        ];
+        
+        // Em desenvolvimento, aceita qualquer origem
+        if (process.env.NODE_ENV !== 'production') {
+            return callback(null, true);
+        }
+        
+        // Em produção, verifica as origens permitidas
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -28,7 +70,10 @@ app.use(session({
     secret: process.env.JWT_SECRET || 'fallback-secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false } // Use true se tiver HTTPS
+    cookie: { 
+        secure: process.env.NODE_ENV === 'production', // HTTPS em produção
+        maxAge: 24 * 60 * 60 * 1000 // 24 horas
+    }
 }));
 
 // Passport middleware
@@ -42,6 +87,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/auth', authRoutes);
 app.use('/api/medias', mediaRoutes);
 
+// Rotas para páginas HTML
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
@@ -62,17 +108,32 @@ app.get('/medias/new', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'media-form.html'));
 });
 
-// ✅ Rota para editar mídia (ADICIONE ESTA)
+// Rota para editar mídia
 app.get('/medias/edit/:id', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'media-edit.html'));
 });
 
-// Rota de health check
-app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'OK', 
-        message: 'Server is running',
-        timestamp: new Date().toISOString()
+// ✅ Rotas de diagnóstico para produção
+app.get('/api/health', (req, res) => {
+    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    
+    res.json({
+        status: 'OK',
+        environment: process.env.NODE_ENV || 'development',
+        database: dbStatus,
+        timestamp: new Date().toISOString(),
+        port: process.env.PORT
+    });
+});
+
+app.get('/api/debug', (req, res) => {
+    res.json({
+        server: 'running',
+        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        environment: process.env.NODE_ENV || 'development',
+        mongodb_uri: process.env.MONGODB_URI ? 'configured' : 'missing',
+        node_version: process.version,
+        platform: process.platform
     });
 });
 
@@ -80,8 +141,9 @@ app.get('/health', (req, res) => {
 app.use((err, req, res, next) => {
     console.error('❌ Error:', err.stack);
     res.status(500).json({ 
-        message: 'Algo deu errado!',
-        error: process.env.NODE_ENV === 'development' ? err.message : {}
+        success: false,
+        message: 'Erro interno do servidor',
+        error: process.env.NODE_ENV === 'development' ? err.message : 'Contact support'
     });
 });
 
@@ -93,7 +155,7 @@ app.use('/api/*', (req, res) => {
     });
 });
 
-// ✅ Rota 404 CORRIGIDA para páginas
+// Rota 404 para páginas
 app.use('*', (req, res) => {
     res.status(404).send(`
         <!DOCTYPE html>
@@ -190,15 +252,11 @@ app.use('*', (req, res) => {
     `);
 });
 
-// Rota para ir para a pagina de edição das coisas
-app.get('/medias/edit/:id', (req, res) => {
-    res.sendFile(path.join(__dirname, 'views', 'media-edit.html'));
-});
-
 // Iniciar servidor
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando na porta ${PORT}`);
-    console.log(`📍 Acesse: http://localhost:${PORT}`);
-    console.log(`❤️  Health: http://localhost:${PORT}/health`);
+    console.log(`📍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`❤️  Health Check: http://localhost:${PORT}/api/health`);
+    console.log(`🔧 Debug Info: http://localhost:${PORT}/api/debug`);
 });
