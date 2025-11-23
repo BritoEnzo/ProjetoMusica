@@ -11,7 +11,6 @@
         <div class="nav-container">
             <h1 class="nav-logo">🎬 Sistema de Mídias</h1>
             <div class="nav-links">
-                <span id="user-greeting">Carregando...</span>
                 <a href="/dashboard" class="active">Dashboard</a>
                 <a href="/medias">Mídias</a>
                 <a href="/medias/new">Nova Mídia</a>
@@ -37,10 +36,10 @@
                 </div>
 
                 <div class="stat-card">
-                    <div class="stat-icon">🎬</div>
+                    <div class="stat-icon">📚</div>
                     <div class="stat-info">
-                        <h3>Lucas</h3>
-                        <p id="lucas-count" class="stat-number">0</p>
+                        <h3>Livros</h3>
+                        <p id="livros-count" class="stat-number">0</p>
                     </div>
                 </div>
 
@@ -61,10 +60,10 @@
                 </div>
 
                 <div class="stat-card">
-                    <div class="stat-icon">🎵</div>
+                    <div class="stat-icon">🧍</div>
                     <div class="stat-info">
-                        <h3>Audio</h3>
-                        <p id="audio-count" class="stat-number">0</p>
+                        <h3>Autores</h3>
+                        <p id="autores-count" class="stat-number">0</p>
                     </div>
                 </div>
             </div>
@@ -78,9 +77,6 @@
                     <a href="/medias" class="btn btn-secondary">
                         📋 Ver Todas as Mídias
                     </a>
-                    <button id="refresh-btn" class="btn btn-outline">
-                        🔄 Atualizar Dados
-                    </button>
                 </div>
             </div>
 
@@ -117,10 +113,10 @@
                     
                     // Atualizar contadores
                     document.getElementById('total-medias').textContent = medias.length;
-                    document.getElementById('lucas-count').textContent = medias.filter(m => m.tipo === 'Lucas').length;
+                    document.getElementById('livros-count').textContent = medias.filter(m => m.tipo === 'Livros').length;
                     document.getElementById('dvds-count').textContent = medias.filter(m => m.tipo === 'DVD').length;
                     document.getElementById('cd4-count').textContent = medias.filter(m => m.tipo === 'CD4').length;
-                    document.getElementById('audio-count').textContent = medias.filter(m => m.tipo === 'Audio').length;
+                    document.getElementById('autores-count').textContent = medias.filter(m => m.tipo === 'Autores').length;
                     
                 } catch (error) {
                     console.error('Erro ao carregar estatísticas:', error);
@@ -159,10 +155,10 @@
 
             getTypeIcon(tipo) {
                 const icons = {
-                    'Lucas': '🎬',
+                    'Livros': '📚',
                     'DVD': '🎥',
                     'CD4': '💿',
-                    'Audio': '🎵'
+                    'Autor': '🧍'
                 };
                 return icons[tipo] || '📀';
             }

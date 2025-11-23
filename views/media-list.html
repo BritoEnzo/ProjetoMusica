@@ -33,7 +33,7 @@
                 <div class="filters">
                     <select id="filter-type" class="filter-select">
                         <option value="">Todos os Tipos</option>
-                        <option value="Lucas">Lucas</option>
+                        <option value="Livros">Livros</option>
                         <option value="DVD">DVD</option>
                         <option value="CD4">CD4</option>
                         <option value="Audio">Audio</option>
@@ -141,32 +141,33 @@
                     return;
                 }
                 
-                tbody.innerHTML = pageMedias.map(media => `
-                    <tr>
-                        <td>
-                            <span class="media-type-badge ${media.tipo.toLowerCase()}">
-                                ${this.getTypeIcon(media.tipo)} ${media.tipo}
-                            </span>
-                        </td>
-                        <td>${media.titulo}</td>
-                        <td>${new Date(media.data).toLocaleDateString('pt-BR')}</td>
-                        <td>${media.adobe || '-'}</td>
-                        <td>${media.usuario?.name || 'N/A'}</td>
-                        <td>
-                            <button onclick="mediaList.editMedia('${media._id}')" class="btn btn-small">
-                                ✏️ Editar
-                            </button>
-                            <button onclick="mediaList.deleteMedia('${media._id}')" class="btn btn-small btn-danger">
-                                🗑️ Excluir
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
-            }
+            tbody.innerHTML = pageMedias.map(media => `
+                <tr>
+                    <td>
+                        <span class="media-type-badge ${media.tipo.toLowerCase()}">
+                            ${this.getTypeIcon(media.tipo)} ${media.tipo}
+                        </span>
+                    </td>
+                    <td>${media.titulo}</td>
+                    <td>${new Date(media.data).toLocaleDateString('pt-BR')}</td>
+                    <td>${media.adobe || '-'}</td>
+                    <td>${media.usuario?.name || 'N/A'}</td>
+                    <td>
+                        <button onclick="mediaList.editMedia('${media._id}')" 
+                                class="btn btn-small" title="Editar mídia">
+                            ✏️ Editar
+                        </button>
+                        <button onclick="mediaList.deleteMedia('${media._id}')" 
+                                class="btn btn-small btn-danger" title="Excluir mídia">
+                            🗑️ Excluir
+                        </button>
+                    </td>
+                </tr>
+            `).join('');            }
 
             getTypeIcon(tipo) {
                 const icons = {
-                    'Lucas': '🎬',
+                    'Livros': '🎬',
                     'DVD': '🎥',
                     'CD4': '💿',
                     'Audio': '🎵'
@@ -185,10 +186,9 @@
                 nextBtn.disabled = this.currentPage === totalPages || totalPages === 0;
             }
 
-            editMedia(id) {
-                alert(`Editar mídia: ${id}\n\nEsta funcionalidade será implementada em breve!`);
-                // window.location.href = `/medias/edit/${id}`;
-            }
+                editMedia(id) {
+                    window.location.href = `/medias/edit/${id}`;
+                }
 
             async deleteMedia(id) {
                 if (!confirm('Tem certeza que deseja excluir esta mídia?')) {

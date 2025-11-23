@@ -31,4 +31,31 @@ router.delete('/:id', (req, res) => {
     }
 });
 
+// GET /api/medias/:id - Buscar uma mídia específica
+router.get('/:id', async (req, res) => {
+    try {
+        const media = await Media.findById(req.params.id)
+            .populate('usuario', 'name email');
+        
+        if (!media) {
+            return res.status(404).json({
+                success: false,
+                message: 'Mídia não encontrada'
+            });
+        }
+        
+        res.json({
+            success: true,
+            data: media
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao buscar mídia:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erro ao carregar mídia'
+        });
+    }
+});
+
 module.exports = router;

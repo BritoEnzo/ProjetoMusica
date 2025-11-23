@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Mídia - Sistema de Mídias</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">🎬 Sistema de Mídias</h1>
+            <div class="nav-links">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/medias">Mídias</a>
+                <a href="/medias/new">Nova Mídia</a>
+                <button id="logout-btn" class="btn-logout">Sair</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="form-container">
+            <div class="form-card">
+                <div class="form-header">
+                    <h1>✏️ Editar Mídia</h1>
+                    <p>Atualize os dados da mídia</p>
+                </div>
+
+                <form id="media-form" class="media-form">
+                    <div class="form-group">
+                        <label for="tipo">Tipo de Mídia *</label>
+                        <select id="tipo" name="tipo" required>
+                            <option value="">Selecione o tipo...</option>
+                            <option value="Livros">📚 Livros</option>
+                            <option value="DVD">🎥 DVD</option>
+                            <option value="CD4">💿 CD4</option>
+                            <option value="Autores">🧍 Autores</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="titulo">Título *</label>
+                        <input type="text" id="titulo" name="titulo" required 
+                               placeholder="Ex: Filme Incrível, Álbum Fantástico...">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="data">Data *</label>
+                        <input type="date" id="data" name="data" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="descricao">Descrição</label>
+                        <textarea id="descricao" name="descricao" 
+                                  placeholder="Descrição opcional da mídia..."
+                                  rows="3"></textarea>
+                    </div>
+
+                    <div id="adobe-field" class="form-group hidden">
+                        <label for="adobe">Adobe * <span class="field-info">(Obrigatório para Audio)</span></label>
+                        <input type="text" id="adobe" name="adobe" 
+                               placeholder="Informações sobre o Adobe...">
+                        <small class="field-help">Campo específico para mídias do tipo Audio</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            💾 Atualizar Mídia
+                        </button>
+                        <a href="/medias" class="btn btn-secondary">
+                            ↩️ Cancelar
+                        </a>
+                        <button type="button" id="delete-btn" class="btn btn-danger">
+                            🗑️ Excluir Mídia
+                        </button>
+                    </div>
+                </form>
+
+                <div id="form-message" class="message hidden"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script>
+        class MediaEdit {
+            constructor() {
+                this.mediaId = this.getMediaIdFromUrl();
+                this.checkAuth();
+                this.loadMediaData();
+                this.setupEventListeners();
+            }
+
+            getMediaIdFromUrl() {
+                const path = window.location.pathname;
+                const parts = path.split('/');
+                return parts[parts.length - 1];
+            }
+
+            checkAuth() {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+            }
+
+            async loadMediaData() {
+                if (!this.mediaId) {
+                    this.showMessage('ID da mídia não encontrado', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/medias/${this.mediaId}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.populateForm(result.data);
+                    } else {
+                        this.showMessage('Erro ao carregar mídia: ' + result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    this.showMessage('Erro ao carregar dados da mídia', 'error');
+                }
+            }
+
+            populateForm(media) {
+                // Preencher campos do formulário
+                document.getElementById('tipo').value = media.tipo;
+                document.getElementById('titulo').value = media.titulo;
+                
+                // Format date for input[type="date"]
+                const date = new Date(media.data);
+                const formattedDate = date.toISOString().split('T')[0];
+                document.getElementById('data').value = formattedDate;
+                
+                document.getElementById('descricao').value = media.descricao || '';
+                document.getElementById('adobe').value = media.adobe || '';
+                
+                // Mostrar/ocultar campo Adobe
+                this.toggleAdobeField(media.tipo);
+            }
+
+            toggleAdobeField(tipo) {
+                const adobeField = document.getElementById('adobe-field');
+                const adobeInput = document.getElementById('adobe');
+                
+                if (tipo === 'Audio') {
+                    adobeField.classList.remove('hidden');
+                    adobeInput.required = true;
+                } else {
+                    adobeField.classList.add('hidden');
+                    adobeInput.required = false;
+                }
+            }
+
+            async submitForm() {
+                const formData = new FormData(document.getElementById('media-form'));
+                
+                if (!this.validateForm(formData)) {
+                    return;
+                }
+
+                const mediaData = {
+                    tipo: formData.get('tipo'),
+                    titulo: formData.get('titulo'),
+                    data: formData.get('data'),
+                    descricao: formData.get('descricao') || '',
+                    adobe: formData.get('adobe') || ''
+                };
+
+                try {
+                    const submitBtn = document.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.textContent = '⏳ Atualizando...';
+                    submitBtn.disabled = true;
+
+                    const response = await fetch(`/api/medias/${this.mediaId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(mediaData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.showMessage('✅ Mídia atualizada com sucesso!', 'success');
+                        
+                        setTimeout(() => {
+                            window.location.href = '/medias';
+                        }, 1500);
+                    } else {
+                        this.showMessage('❌ Erro ao atualizar: ' + result.message, 'error');
+                    }
+
+                } catch (error) {
+                    this.showMessage('❌ Erro de conexão', 'error');
+                } finally {
+                    const submitBtn = document.querySelector('button[type="submit"]');
+                    submitBtn.textContent = '💾 Atualizar Mídia';
+                    submitBtn.disabled = false;
+                }
+            }
+
+            async deleteMedia() {
+                if (!confirm('Tem certeza que deseja excluir esta mídia? Esta ação não pode ser desfeita.')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/medias/${this.mediaId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.showMessage('✅ Mídia excluída com sucesso!', 'success');
+                        
+                        setTimeout(() => {
+                            window.location.href = '/medias';
+                        }, 1500);
+                    } else {
+                        this.showMessage('❌ Erro ao excluir: ' + result.message, 'error');
+                    }
+                } catch (error) {
+                    this.showMessage('❌ Erro de conexão', 'error');
+                }
+            }
+
+            validateForm(formData) {
+                const tipo = formData.get('tipo');
+                const titulo = formData.get('titulo');
+                const data = formData.get('data');
+                const adobe = formData.get('adobe');
+
+                if (!tipo) {
+                    this.showMessage('❌ Selecione o tipo de mídia', 'error');
+                    return false;
+                }
+
+                if (!titulo.trim()) {
+                    this.showMessage('❌ Preencha o título da mídia', 'error');
+                    return false;
+                }
+
+                if (!data) {
+                    this.showMessage('❌ Selecione a data', 'error');
+                    return false;
+                }
+
+                if (tipo === 'Audio' && !adobe.trim()) {
+                    this.showMessage('❌ O campo Adobe é obrigatório para Audio', 'error');
+                    return false;
+                }
+
+                return true;
+            }
+
+            showMessage(text, type) {
+                const messageEl = document.getElementById('form-message');
+                messageEl.textContent = text;
+                messageEl.className = `message ${type}`;
+                messageEl.classList.remove('hidden');
+
+                setTimeout(() => {
+                    messageEl.classList.add('hidden');
+                }, 5000);
+            }
+
+            setupEventListeners() {
+                // Tipo change
+                document.getElementById('tipo').addEventListener('change', (e) => {
+                    this.toggleAdobeField(e.target.value);
+                });
+
+                // Form submit
+                document.getElementById('media-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.submitForm();
+                });
+
+                // Delete button
+                document.getElementById('delete-btn').addEventListener('click', () => {
+                    this.deleteMedia();
+                });
+
+                // Logout
+                document.getElementById('logout-btn').addEventListener('click', () => {
+                    localStorage.removeItem('token');
+                    window.location.href = '/';
+                });
+            }
+        }
+
+        // Inicializar editor
+        document.addEventListener('DOMContentLoaded', () => {
+            new MediaEdit();
+        });
+    </script>
+</body>
+</html>
