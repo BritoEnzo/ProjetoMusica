@@ -9,9 +9,9 @@ const isValidEmail = (email) => {
 };
 
 /**
- * Valida dados de mídia
+ * Valida dados
  * @param {object} mediaData 
- * @returns {object} { isValid: boolean, errors: array }
+ * @returns {object} 
  */
 const validateMedia = (mediaData) => {
     const errors = [];
